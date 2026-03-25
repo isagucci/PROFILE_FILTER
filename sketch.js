@@ -14,6 +14,11 @@ let backdrop;
 let videoBuffer;
 let fontsReady = false;
 
+function getProcessScale(isWide) {
+  // Mobile looks pixelated at the old scale; bump quality there.
+  return isWide ? 0.35 : 0.55;
+}
+
 const PROFILE_DEFS = {
   tropical: {
     label: "Tropical",
@@ -182,6 +187,7 @@ function draw() {
   }
 
   const isWide = width >= 768;
+  processScale = getProcessScale(isWide);
   const pad = min(max(16, width * 0.045), 28);
   const gap = isWide ? 22 : 14;
   const panelR = 16;
@@ -251,14 +257,26 @@ function draw() {
   } else {
     const targetAspect = 6 / 19; // width:height
     frameY = yCursor;
-    const maxFrameH = max(220, availH * 0.62);
-    frameW = min(contentW, maxFrameH * targetAspect);
+    // Make the filter "front and center": full width + tall.
+    frameW = contentW;
     frameH = frameW / targetAspect;
-    frameX = pad + (contentW - frameW) / 2;
+    frameX = pad;
     sideX = pad;
     sideY = frameY + frameH + gap;
     sideW = contentW;
-    sideH = max(height - sideY - bottomReserve, 112);
+    // Fixed minimum panel height; allow page to scroll for the rest.
+    sideH = max(260, height - sideY - bottomReserve);
+  }
+
+  // If content overflows, grow the canvas so the page can scroll.
+  // (Only on mobile; desktop remains full-viewport.)
+  if (!isWide) {
+    const neededH = ceil(sideY + sideH + bottomReserve);
+    if (neededH > height) {
+      resizeCanvas(windowWidth, neededH);
+      buildBackdrop();
+      return;
+    }
   }
 
   drawGlassPanel(frameX, frameY, frameW, frameH, panelR);
@@ -393,8 +411,10 @@ function drawGlassPanel(x, y, w, h, r) {
 }
 
 function drawMappedVideo(imgX, imgY, imgW, imgH) {
-  const bufferW = max(1, floor(imgW * processScale));
-  const bufferH = max(1, floor(imgH * processScale));
+  // Cap processing size for performance on big screens.
+  const maxProcessDim = 900;
+  const bufferW = max(1, min(maxProcessDim, floor(imgW * processScale)));
+  const bufferH = max(1, min(maxProcessDim, floor(imgH * processScale)));
 
   if (videoBuffer.width !== bufferW || videoBuffer.height !== bufferH) {
     videoBuffer.resizeCanvas(bufferW, bufferH);
