@@ -14,6 +14,35 @@ let backdrop;
 let videoBuffer;
 let fontsReady = false;
 
+const PROFILE_DEFS = {
+  tropical: {
+    label: "Tropical",
+    code: "A",
+    notes: "Higher saturation,\nwarm-biased tones,\nand brighter contrast\nstructures.",
+  },
+  temperate: {
+    label: "Temperate",
+    code: "B",
+    notes: "Balanced chroma,\nmoderate contrast,\nand adaptable neutrals.",
+  },
+  arid: {
+    label: "Arid",
+    code: "C",
+    notes: "Dusty warmth,\nmuted intensity,\nand sun-washed contrast.",
+  },
+  polar: {
+    label: "Polar",
+    code: "D",
+    notes: "Cool clarity,\nhigh value range,\nand crisp contrast edges.",
+  },
+};
+
+const state = {
+  climateKey: "tropical",
+  palette: null, // array of [r,g,b]
+  userField: null, // array of [r,g,b]
+};
+
 const THEME = {
   vignette: [42, 40, 36],
   meshTop: [78, 130, 104],
@@ -29,6 +58,61 @@ const THEME = {
   hairline: [255, 255, 255, 71],
 };
 
+function parseHexColorToken(token) {
+  if (!token) return null;
+  let t = String(token).trim();
+  if (!t) return null;
+  if (t.startsWith("#")) t = t.slice(1);
+  if (t.length === 3) {
+    t = t
+      .split("")
+      .map((ch) => ch + ch)
+      .join("");
+  }
+  if (!/^[0-9a-fA-F]{6}$/.test(t)) return null;
+  const r = parseInt(t.slice(0, 2), 16);
+  const g = parseInt(t.slice(2, 4), 16);
+  const b = parseInt(t.slice(4, 6), 16);
+  return [r, g, b];
+}
+
+function parseColorListParam(value) {
+  if (value == null) return null;
+  const decoded = decodeURIComponent(String(value));
+  const tokens = decoded
+    .split(/[,\s]+/g)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const colors = [];
+  for (const token of tokens) {
+    const rgb = parseHexColorToken(token);
+    if (rgb) colors.push(rgb);
+  }
+  return colors.length ? colors : null;
+}
+
+function readUrlParams() {
+  const params = new URLSearchParams(window.location.search);
+
+  const climateRaw = params.get("climate");
+  if (climateRaw) {
+    const key = String(climateRaw).trim().toLowerCase();
+    state.climateKey = PROFILE_DEFS[key] ? key : key;
+  }
+
+  const paletteRaw = params.get("palette");
+  const paletteColors = parseColorListParam(paletteRaw);
+  if (paletteColors && paletteColors.length >= 2) {
+    state.palette = paletteColors;
+  }
+
+  const userFieldRaw = params.get("userField");
+  const userFieldColors = parseColorListParam(userFieldRaw);
+  if (userFieldColors && userFieldColors.length) {
+    state.userField = userFieldColors;
+  }
+}
+
 function setup() {
   createCanvas(windowWidth, windowHeight);
   pixelDensity(min(window.devicePixelRatio || 1, 2));
@@ -36,6 +120,11 @@ function setup() {
   document.fonts.ready.then(() => {
     fontsReady = true;
   });
+
+  readUrlParams();
+  if (state.palette) {
+    sortedPalette = state.palette.slice();
+  }
 
   capture = createCapture(
     {
@@ -122,7 +211,17 @@ function draw() {
   let titleSize = isWide ? 42 : min(34, width * 0.085);
   textSize(titleSize);
   const titleY = yCursor + pad + 22;
-  text("Your Profile: Tropical (A)", pad + pad, titleY, contentW - pad * 2);
+  const def =
+    PROFILE_DEFS[state.climateKey] ||
+    PROFILE_DEFS[String(state.climateKey || "").trim().toLowerCase()] ||
+    null;
+  const climateLabel = def
+    ? def.label
+    : String(state.climateKey || "Tropical")
+        .trim()
+        .replace(/^\w/, (c) => c.toUpperCase());
+  const climateCode = def?.code ? ` (${def.code})` : "";
+  text(`Your Profile: ${climateLabel}${climateCode}`, pad + pad, titleY, contentW - pad * 2);
 
   textFont(bodyFont);
   textStyle(NORMAL);
@@ -237,13 +336,46 @@ function draw() {
   textStyle(NORMAL);
   textSize(isWide ? 12 : 13);
   fill(THEME.inkFaint[0], THEME.inkFaint[1], THEME.inkFaint[2], THEME.inkFaint[3]);
+  const notes = def?.notes
+    ? def.notes
+    : "Profile loaded from URL.\nAdd `climate`, `palette`,\nand `userField` params\nto update the view.";
   text(
-    "Higher saturation,\nwarm-biased tones,\nand brighter contrast\nstructures.",
+    notes,
     sideX + sidePad,
     swatchY + 22,
     innerSideW,
     sideY + sideH - (swatchY + 22) - sidePad
   );
+
+  if (state.userField && state.userField.length) {
+    let ufTitleY = sideY + sideH - sidePad - (isWide ? 92 : 108);
+    ufTitleY = max(ufTitleY, swatchY + 22 + (isWide ? 58 : 66));
+
+    textFont(labelFont);
+    textStyle(NORMAL);
+    fill(THEME.ink[0], THEME.ink[1], THEME.ink[2]);
+    textSize(12);
+    text("USER FIELD", sideX + sidePad, ufTitleY);
+
+    const gridTop = ufTitleY + 22;
+    const gridH = sideY + sideH - sidePad - gridTop;
+    const cols = isWide ? 6 : 8;
+    const gapPx = 6;
+    const cell = (innerSideW - gapPx * (cols - 1)) / cols;
+    const rows = max(1, floor((gridH + gapPx) / (cell + gapPx)));
+    const maxCells = rows * cols;
+    const count = min(state.userField.length, maxCells);
+    noStroke();
+    for (let i = 0; i < count; i++) {
+      const c = state.userField[i];
+      const col = i % cols;
+      const row = floor(i / cols);
+      const x = sideX + sidePad + col * (cell + gapPx);
+      const y = gridTop + row * (cell + gapPx);
+      fill(c[0], c[1], c[2]);
+      rect(x, y, cell, cell, 6);
+    }
+  }
 
   textFont(bodyFont);
   fill(THEME.inkCaption[0], THEME.inkCaption[1], THEME.inkCaption[2], THEME.inkCaption[3]);
