@@ -425,7 +425,29 @@ function drawMappedVideo(imgX, imgY, imgW, imgH) {
   }
 
   videoBuffer.updatePixels();
-  image(videoBuffer, imgX, imgY, imgW, imgH);
+
+  // Draw without warping: preserve aspect and crop to fill ("cover").
+  const srcAspect = videoBuffer.width / videoBuffer.height;
+  const dstAspect = imgW / imgH;
+  let drawW, drawH;
+  if (dstAspect > srcAspect) {
+    drawW = imgW;
+    drawH = imgW / srcAspect;
+  } else {
+    drawH = imgH;
+    drawW = imgH * srcAspect;
+  }
+  const dx = imgX + (imgW - drawW) / 2;
+  const dy = imgY + (imgH - drawH) / 2;
+
+  push();
+  drawingContext.save();
+  drawingContext.beginPath();
+  drawingContext.rect(imgX, imgY, imgW, imgH);
+  drawingContext.clip();
+  image(videoBuffer, dx, dy, drawW, drawH);
+  drawingContext.restore();
+  pop();
 }
 
 function getBrightness(r, g, b) {
