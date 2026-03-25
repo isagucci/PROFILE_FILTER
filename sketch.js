@@ -16,7 +16,7 @@ let fontsReady = false;
 
 function getProcessScale(isWide) {
   // Mobile looks pixelated at the old scale; bump quality there.
-  return isWide ? 0.35 : 0.6;
+  return isWide ? 0.35 : 0.72;
 }
 
 let paletteAll = null; // original palette order (array of [r,g,b])
@@ -262,19 +262,7 @@ function draw() {
   fill(THEME.inkFaint[0], THEME.inkFaint[1], THEME.inkFaint[2], THEME.inkFaint[3]);
   const titleBlockH = titleSize * (isWide ? 1.35 : 1.65);
   const subY = titleY + titleBlockH;
-  if (isWide) {
-    text("Live camera remapped through your selected palette", pad + pad, subY, contentW - pad * 2, 80);
-  } else {
-    text(
-      "Live camera remapped through your selected palette",
-      pad + pad,
-      subY,
-      contentW - pad * 2,
-      44 * mobileTextScale
-    );
-  }
-
-  yCursor = subY + (isWide ? 52 : 14);
+  yCursor = subY + (isWide ? 36 : 10);
 
   const bottomReserve = isWide ? 40 : 22;
   const availH = height - yCursor - bottomReserve;
@@ -299,13 +287,13 @@ function draw() {
 
     sideX = pad;
     sideW = contentW;
-    sideH = 150;
+    sideH = 130;
     sideY = height - bottomReserve - sideH;
 
     frameH = max(210, sideY - gap - frameY);
     // If space is tight, compress the palette bar a bit to give camera more room.
     if (frameH < 230) {
-      sideH = 120;
+      sideH = 110;
       sideY = height - bottomReserve - sideH;
       frameH = max(200, sideY - gap - frameY);
     }
@@ -417,7 +405,6 @@ function draw() {
   fill(THEME.inkCaption[0], THEME.inkCaption[1], THEME.inkCaption[2], THEME.inkCaption[3]);
   textSize(11);
   textAlign(LEFT, BOTTOM);
-  text("Brightness-based palette interpolation", pad, height - max(16, pad));
 }
 
 function drawGlassPanel(x, y, w, h, r) {
@@ -429,7 +416,8 @@ function drawGlassPanel(x, y, w, h, r) {
 
 function drawMappedVideo(imgX, imgY, imgW, imgH) {
   // Cap processing size for performance on big screens.
-  const maxProcessDim = 900;
+  const isWide = width >= 768;
+  const maxProcessDim = isWide ? 900 : 1300;
   const bufferW = max(1, min(maxProcessDim, floor(imgW * processScale)));
   const bufferH = max(1, min(maxProcessDim, floor(imgH * processScale)));
 
