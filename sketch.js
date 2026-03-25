@@ -16,7 +16,7 @@ let fontsReady = false;
 
 function getProcessScale(isWide) {
   // Mobile looks pixelated at the old scale; bump quality there.
-  return isWide ? 0.35 : 0.55;
+  return isWide ? 0.35 : 0.6;
 }
 
 let paletteAll = null; // original palette order (array of [r,g,b])
@@ -293,17 +293,22 @@ function draw() {
     sideH = frameH;
   } else {
     frameY = yCursor;
-    // Mobile: prioritize camera, but keep everything visible (no scrolling).
-    // Return to a horizontal frame like the original feel.
-    const sideMinH = 180;
-    const maxFrameH = max(190, availH - sideMinH - gap);
+    // Mobile: make camera taller, palette smaller and anchored at bottom (no scroll).
     frameW = contentW;
-    frameH = min(maxFrameH, frameW * (9 / 16));
     frameX = pad;
+
     sideX = pad;
-    sideY = frameY + frameH + gap;
     sideW = contentW;
-    sideH = max(112, height - sideY - bottomReserve);
+    sideH = 150;
+    sideY = height - bottomReserve - sideH;
+
+    frameH = max(210, sideY - gap - frameY);
+    // If space is tight, compress the palette bar a bit to give camera more room.
+    if (frameH < 230) {
+      sideH = 120;
+      sideY = height - bottomReserve - sideH;
+      frameH = max(200, sideY - gap - frameY);
+    }
   }
 
   drawGlassPanel(frameX, frameY, frameW, frameH, panelR);
@@ -367,7 +372,8 @@ function draw() {
     const cols = 3;
     const rows = ceil(paletteAll.length / cols);
     const swW = (innerSideW - swatchGap * (cols - 1)) / cols;
-    const swH = min(36, max(28, (sideH - 120) / rows));
+    // Keep palette controls smaller on mobile.
+    const swH = min(28, max(20, (sideH - 80) / rows));
     for (let i = 0; i < paletteAll.length; i++) {
       let col = i % cols;
       let row = floor(i / cols);
