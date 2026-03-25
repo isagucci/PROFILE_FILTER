@@ -188,8 +188,8 @@ function draw() {
 
   const isWide = width >= 768;
   processScale = getProcessScale(isWide);
-  const pad = min(max(16, width * 0.045), 28);
-  const gap = isWide ? 22 : 14;
+  const pad = isWide ? min(max(16, width * 0.045), 28) : 14;
+  const gap = isWide ? 22 : 12;
   const panelR = 16;
   const innerR = 12;
 
@@ -214,7 +214,7 @@ function draw() {
   textFont(titleFont);
   textStyle(BOLD);
   fill(THEME.ink[0], THEME.ink[1], THEME.ink[2]);
-  let titleSize = isWide ? 42 : min(34, width * 0.085);
+  let titleSize = isWide ? 42 : min(30, width * 0.078);
   textSize(titleSize);
   const titleY = yCursor + pad + 22;
   const def =
@@ -233,13 +233,17 @@ function draw() {
   textStyle(NORMAL);
   textSize(isWide ? 18 : 16);
   fill(THEME.inkFaint[0], THEME.inkFaint[1], THEME.inkFaint[2], THEME.inkFaint[3]);
-  const titleBlockH = titleSize * (isWide ? 1.35 : 2.75);
+  const titleBlockH = titleSize * (isWide ? 1.35 : 1.85);
   const subY = titleY + titleBlockH;
-  text("Live camera remapped through your selected palette", pad + pad, subY, contentW - pad * 2, 80);
+  if (isWide) {
+    text("Live camera remapped through your selected palette", pad + pad, subY, contentW - pad * 2, 80);
+  } else {
+    text("Live camera remapped through your selected palette", pad + pad, subY, contentW - pad * 2, 52);
+  }
 
-  yCursor = subY + (isWide ? 52 : 56);
+  yCursor = subY + (isWide ? 52 : 22);
 
-  const bottomReserve = isWide ? 40 : 52;
+  const bottomReserve = isWide ? 40 : 22;
   const availH = height - yCursor - bottomReserve;
 
   let frameX, frameY, frameW, frameH;
