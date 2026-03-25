@@ -192,6 +192,7 @@ function draw() {
   const gap = isWide ? 22 : 12;
   const panelR = 16;
   const innerR = 12;
+  const mobileTextScale = isWide ? 1 : constrain(map(height, 620, 860, 0.86, 1), 0.84, 1);
 
   const titleFont = fontsReady ? "freight-display-pro" : "Georgia";
   const labelFont = fontsReady ? "neue-haas-grotesk-display-pro" : "Helvetica Neue";
@@ -206,7 +207,7 @@ function draw() {
   textAlign(LEFT, TOP);
 
   textFont(bodyFont);
-  textSize(11);
+  textSize(isWide ? 11 : 11 * mobileTextScale);
   textStyle(NORMAL);
   fill(THEME.ink[0], THEME.ink[1], THEME.ink[2], 153);
   text("COLOR PROFILE VIEWER", pad + pad, yCursor + pad);
@@ -214,7 +215,7 @@ function draw() {
   textFont(titleFont);
   textStyle(BOLD);
   fill(THEME.ink[0], THEME.ink[1], THEME.ink[2]);
-  let titleSize = isWide ? 42 : min(30, width * 0.078);
+  let titleSize = isWide ? 42 : min(30, width * 0.078) * mobileTextScale;
   textSize(titleSize);
   const titleY = yCursor + pad + 22;
   const def =
@@ -231,17 +232,23 @@ function draw() {
 
   textFont(bodyFont);
   textStyle(NORMAL);
-  textSize(isWide ? 18 : 16);
+  textSize(isWide ? 18 : 16 * mobileTextScale);
   fill(THEME.inkFaint[0], THEME.inkFaint[1], THEME.inkFaint[2], THEME.inkFaint[3]);
-  const titleBlockH = titleSize * (isWide ? 1.35 : 1.85);
+  const titleBlockH = titleSize * (isWide ? 1.35 : 1.65);
   const subY = titleY + titleBlockH;
   if (isWide) {
     text("Live camera remapped through your selected palette", pad + pad, subY, contentW - pad * 2, 80);
   } else {
-    text("Live camera remapped through your selected palette", pad + pad, subY, contentW - pad * 2, 52);
+    text(
+      "Live camera remapped through your selected palette",
+      pad + pad,
+      subY,
+      contentW - pad * 2,
+      44 * mobileTextScale
+    );
   }
 
-  yCursor = subY + (isWide ? 52 : 22);
+  yCursor = subY + (isWide ? 52 : 14);
 
   const bottomReserve = isWide ? 40 : 22;
   const availH = height - yCursor - bottomReserve;
@@ -261,26 +268,17 @@ function draw() {
   } else {
     const targetAspect = 6 / 19; // width:height
     frameY = yCursor;
-    // Make the filter "front and center": full width + tall.
-    frameW = contentW;
+    // Keep filter large, but fit everything in a non-scrollable viewport.
+    const sideMinH = 160;
+    const maxFrameH = max(220, availH - sideMinH - gap);
+    frameH = maxFrameH;
+    frameW = min(contentW, frameH * targetAspect);
+    frameX = pad + (contentW - frameW) / 2;
     frameH = frameW / targetAspect;
-    frameX = pad;
     sideX = pad;
     sideY = frameY + frameH + gap;
     sideW = contentW;
-    // Fixed minimum panel height; allow page to scroll for the rest.
-    sideH = max(260, height - sideY - bottomReserve);
-  }
-
-  // If content overflows, grow the canvas so the page can scroll.
-  // (Only on mobile; desktop remains full-viewport.)
-  if (!isWide) {
-    const neededH = ceil(sideY + sideH + bottomReserve);
-    if (neededH > height) {
-      resizeCanvas(windowWidth, neededH);
-      buildBackdrop();
-      return;
-    }
+    sideH = max(112, height - sideY - bottomReserve);
   }
 
   drawGlassPanel(frameX, frameY, frameW, frameH, panelR);
