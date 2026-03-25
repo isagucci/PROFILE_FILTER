@@ -19,6 +19,10 @@ function getProcessScale(isWide) {
   return isWide ? 0.35 : 0.55;
 }
 
+let paletteAll = null; // original palette order (array of [r,g,b])
+let selectedPaletteIdx = new Set(); // indices into paletteAll
+let paletteHitboxes = []; // {x,y,w,h,idx}
+
 const PROFILE_DEFS = {
   tropical: {
     label: "Tropical",
@@ -118,6 +122,32 @@ function readUrlParams() {
   }
 }
 
+function ensurePaletteState() {
+  if (!paletteAll || !paletteAll.length) {
+    paletteAll = sortedPalette.slice();
+  }
+  if (selectedPaletteIdx.size === 0) {
+    for (let i = 0; i < paletteAll.length; i++) selectedPaletteIdx.add(i);
+  }
+}
+
+function recomputeActivePalette() {
+  ensurePaletteState();
+  const active = [];
+  for (let i = 0; i < paletteAll.length; i++) {
+    if (selectedPaletteIdx.has(i)) active.push(paletteAll[i]);
+  }
+  if (active.length === 0 && paletteAll.length) {
+    selectedPaletteIdx.add(0);
+    active.push(paletteAll[0]);
+  }
+
+  sortedPalette = active.slice().sort((a, b) => {
+    return getBrightness(a[0], a[1], a[2]) - getBrightness(b[0], b[1], b[2]);
+  });
+  paletteBrightness = sortedPalette.map((c) => getBrightness(c[0], c[1], c[2]));
+}
+
 function setup() {
   createCanvas(windowWidth, windowHeight);
   pixelDensity(min(window.devicePixelRatio || 1, 2));
@@ -127,9 +157,9 @@ function setup() {
   });
 
   readUrlParams();
-  if (state.palette) {
-    sortedPalette = state.palette.slice();
-  }
+  if (state.palette) paletteAll = state.palette.slice();
+  ensurePaletteState();
+  recomputeActivePalette();
 
   capture = createCapture(
     {
@@ -144,11 +174,7 @@ function setup() {
   videoBuffer = createGraphics(1, 1);
   videoBuffer.pixelDensity(1);
 
-  sortedPalette = sortedPalette.slice().sort((a, b) => {
-    return getBrightness(a[0], a[1], a[2]) - getBrightness(b[0], b[1], b[2]);
-  });
-
-  paletteBrightness = sortedPalette.map((c) => getBrightness(c[0], c[1], c[2]));
+  // `recomputeActivePalette()` already sorts and computes brightness.
 
   buildBackdrop();
 }
@@ -266,15 +292,14 @@ function draw() {
     sideY = frameY;
     sideH = frameH;
   } else {
-    const targetAspect = 6 / 19; // width:height
     frameY = yCursor;
-    // Keep filter large, but fit everything in a non-scrollable viewport.
-    const sideMinH = 160;
-    const maxFrameH = max(220, availH - sideMinH - gap);
-    frameH = maxFrameH;
-    frameW = min(contentW, frameH * targetAspect);
-    frameX = pad + (contentW - frameW) / 2;
-    frameH = frameW / targetAspect;
+    // Mobile: prioritize camera, but keep everything visible (no scrolling).
+    // Return to a horizontal frame like the original feel.
+    const sideMinH = 180;
+    const maxFrameH = max(190, availH - sideMinH - gap);
+    frameW = contentW;
+    frameH = min(maxFrameH, frameW * (9 / 16));
+    frameX = pad;
     sideX = pad;
     sideY = frameY + frameH + gap;
     sideW = contentW;
@@ -315,88 +340,72 @@ function draw() {
   const swatchR = 8;
   let swatchY = sy + 26;
   const innerSideW = sideW - sidePad * 2;
+  paletteHitboxes = [];
 
   if (isWide) {
-    for (let i = 0; i < sortedPalette.length; i++) {
-      let c = sortedPalette[i];
-      noStroke();
-      fill(c[0], c[1], c[2]);
+    const sh = 26;
+    for (let i = 0; i < paletteAll.length; i++) {
+      const c = paletteAll[i];
+      const selected = selectedPaletteIdx.has(i);
+      if (selected) {
+        stroke(255, 255, 255, 80);
+        strokeWeight(1);
+        fill(c[0], c[1], c[2], 255);
+      } else {
+        stroke(255, 255, 255, 30);
+        strokeWeight(1);
+        fill(c[0], c[1], c[2], 80);
+      }
       let sh = 26;
-      rect(sideX + sidePad, swatchY + i * (sh + swatchGap), innerSideW, sh, swatchR);
+      const x = sideX + sidePad;
+      const y = swatchY + i * (sh + swatchGap);
+      rect(x, y, innerSideW, sh, swatchR);
+      paletteHitboxes.push({ x, y, w: innerSideW, h: sh, idx: i });
     }
-    swatchY += sortedPalette.length * (26 + swatchGap) + 8;
+    swatchY += paletteAll.length * (sh + swatchGap) + 8;
   } else {
     const cols = 3;
-    const rows = ceil(sortedPalette.length / cols);
+    const rows = ceil(paletteAll.length / cols);
     const swW = (innerSideW - swatchGap * (cols - 1)) / cols;
     const swH = min(36, max(28, (sideH - 120) / rows));
-    for (let i = 0; i < sortedPalette.length; i++) {
+    for (let i = 0; i < paletteAll.length; i++) {
       let col = i % cols;
       let row = floor(i / cols);
-      let c = sortedPalette[i];
-      noStroke();
-      fill(c[0], c[1], c[2]);
+      const c = paletteAll[i];
+      const selected = selectedPaletteIdx.has(i);
+      if (selected) {
+        stroke(255, 255, 255, 80);
+        strokeWeight(1);
+        fill(c[0], c[1], c[2], 255);
+      } else {
+        stroke(255, 255, 255, 30);
+        strokeWeight(1);
+        fill(c[0], c[1], c[2], 80);
+      }
+      const x = sideX + sidePad + col * (swW + swatchGap);
+      const y = swatchY + row * (swH + swatchGap);
       rect(
-        sideX + sidePad + col * (swW + swatchGap),
-        swatchY + row * (swH + swatchGap),
+        x,
+        y,
         swW,
         swH,
         swatchR
       );
+      paletteHitboxes.push({ x, y, w: swW, h: swH, idx: i });
     }
     swatchY += rows * (swH + swatchGap) + 12;
   }
-
-  textFont(labelFont);
-  textStyle(NORMAL);
-  fill(THEME.ink[0], THEME.ink[1], THEME.ink[2]);
-  textSize(12);
-  text("PROFILE NOTES", sideX + sidePad, swatchY);
-
   textFont(bodyFont);
   textStyle(NORMAL);
-  textSize(isWide ? 12 : 13);
+  textSize(isWide ? 12 : 12 * mobileTextScale);
   fill(THEME.inkFaint[0], THEME.inkFaint[1], THEME.inkFaint[2], THEME.inkFaint[3]);
-  const notes = def?.notes
-    ? def.notes
-    : "Profile loaded from URL.\nAdd `climate`, `palette`,\nand `userField` params\nto update the view.";
   text(
-    notes,
+    "Tap to enable/disable colors.\nSelected colors drive the filter.",
     sideX + sidePad,
-    swatchY + 22,
+    swatchY,
     innerSideW,
-    sideY + sideH - (swatchY + 22) - sidePad
+    max(42, sideY + sideH - swatchY - sidePad)
   );
-
-  if (state.userField && state.userField.length) {
-    let ufTitleY = sideY + sideH - sidePad - (isWide ? 92 : 108);
-    ufTitleY = max(ufTitleY, swatchY + 22 + (isWide ? 58 : 66));
-
-    textFont(labelFont);
-    textStyle(NORMAL);
-    fill(THEME.ink[0], THEME.ink[1], THEME.ink[2]);
-    textSize(12);
-    text("USER FIELD", sideX + sidePad, ufTitleY);
-
-    const gridTop = ufTitleY + 22;
-    const gridH = sideY + sideH - sidePad - gridTop;
-    const cols = isWide ? 6 : 8;
-    const gapPx = 6;
-    const cell = (innerSideW - gapPx * (cols - 1)) / cols;
-    const rows = max(1, floor((gridH + gapPx) / (cell + gapPx)));
-    const maxCells = rows * cols;
-    const count = min(state.userField.length, maxCells);
-    noStroke();
-    for (let i = 0; i < count; i++) {
-      const c = state.userField[i];
-      const col = i % cols;
-      const row = floor(i / cols);
-      const x = sideX + sidePad + col * (cell + gapPx);
-      const y = gridTop + row * (cell + gapPx);
-      fill(c[0], c[1], c[2]);
-      rect(x, y, cell, cell, 6);
-    }
-  }
 
   textFont(bodyFont);
   fill(THEME.inkCaption[0], THEME.inkCaption[1], THEME.inkCaption[2], THEME.inkCaption[3]);
@@ -477,6 +486,8 @@ function getBrightness(r, g, b) {
 }
 
 function mapByBrightnessBlend(r, g, b) {
+  if (!sortedPalette || sortedPalette.length === 0) return [r, g, b];
+  if (sortedPalette.length === 1) return sortedPalette[0];
   let bright = getBrightness(r, g, b);
 
   if (bright <= paletteBrightness[0]) return sortedPalette[0];
@@ -505,4 +516,29 @@ function mapByBrightnessBlend(r, g, b) {
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
   buildBackdrop();
+}
+
+function handlePaletteHit(px, py) {
+  if (!paletteHitboxes || paletteHitboxes.length === 0) return false;
+  for (let i = paletteHitboxes.length - 1; i >= 0; i--) {
+    const h = paletteHitboxes[i];
+    if (px >= h.x && px <= h.x + h.w && py >= h.y && py <= h.y + h.h) {
+      if (selectedPaletteIdx.has(h.idx)) {
+        if (selectedPaletteIdx.size > 1) selectedPaletteIdx.delete(h.idx);
+      } else {
+        selectedPaletteIdx.add(h.idx);
+      }
+      recomputeActivePalette();
+      return true;
+    }
+  }
+  return false;
+}
+
+function mousePressed() {
+  handlePaletteHit(mouseX, mouseY);
+}
+
+function touchStarted() {
+  return handlePaletteHit(touches?.[0]?.x ?? mouseX, touches?.[0]?.y ?? mouseY);
 }
