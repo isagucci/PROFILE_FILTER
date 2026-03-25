@@ -14,10 +14,6 @@ let backdrop;
 let videoBuffer;
 let fontsReady = false;
 
-// Target capture / render aspect on phones (portrait).
-// 6:19 ≈ 0.315789 (w / h)
-const CAMERA_TARGET_ASPECT = 6 / 19;
-
 const PROFILE_DEFS = {
   tropical: {
     label: "Tropical",
@@ -132,12 +128,7 @@ function setup() {
 
   capture = createCapture(
     {
-      video: {
-        facingMode: "environment",
-        aspectRatio: CAMERA_TARGET_ASPECT,
-        width: { ideal: 1080 },
-        height: { ideal: 1920 },
-      },
+      video: { facingMode: "environment" },
       audio: false,
     },
     () => {
@@ -258,11 +249,12 @@ function draw() {
     sideY = frameY;
     sideH = frameH;
   } else {
-    frameX = pad;
+    const targetAspect = 6 / 19; // width:height
     frameY = yCursor;
-    frameW = contentW;
-    const maxFrameH = min(availH * 0.62, frameW * 0.85);
-    frameH = max(200, maxFrameH);
+    const maxFrameH = max(220, availH * 0.62);
+    frameW = min(contentW, maxFrameH * targetAspect);
+    frameH = frameW / targetAspect;
+    frameX = pad + (contentW - frameW) / 2;
     sideX = pad;
     sideY = frameY + frameH + gap;
     sideW = contentW;
@@ -413,27 +405,10 @@ function drawMappedVideo(imgX, imgY, imgW, imgH) {
 
   videoBuffer.loadPixels();
 
-  // Center-crop the source capture to the target aspect (w/h),
-  // so the remap + display match 6:19 consistently.
-  const srcW = capture.width || 1;
-  const srcH = capture.height || 1;
-  const srcAspect = srcW / srcH;
-  let cropW = srcW;
-  let cropH = srcH;
-  if (srcAspect > CAMERA_TARGET_ASPECT) {
-    cropW = floor(srcH * CAMERA_TARGET_ASPECT);
-  } else if (srcAspect < CAMERA_TARGET_ASPECT) {
-    cropH = floor(srcW / CAMERA_TARGET_ASPECT);
-  }
-  cropW = max(1, min(srcW, cropW));
-  cropH = max(1, min(srcH, cropH));
-  const cropX = floor((srcW - cropW) / 2);
-  const cropY = floor((srcH - cropH) / 2);
-
   for (let y = 0; y < bufferH; y++) {
-    const sy = floor(map(y, 0, bufferH, cropY, cropY + cropH - 1));
+    const sy = floor(map(y, 0, bufferH, 0, capture.height - 1));
     for (let x = 0; x < bufferW; x++) {
-      const sx = floor(map(x, 0, bufferW, cropX, cropX + cropW - 1));
+      const sx = floor(map(x, 0, bufferW, 0, capture.width - 1));
       const srcIndex = 4 * (sy * capture.width + sx);
       const dstIndex = 4 * (y * bufferW + x);
 
