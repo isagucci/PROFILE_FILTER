@@ -13,6 +13,8 @@ let processScale = 0.35;
 let backdrop;
 let videoBuffer;
 let fontsReady = false;
+let snapBtn;
+let lastVideoRect = null; // {x,y,w,h} in canvas coords for the remapped feed
 
 function getProcessScale(isWide) {
   // Mobile looks pixelated at the old scale; bump quality there.
@@ -177,6 +179,11 @@ function setup() {
   // `recomputeActivePalette()` already sorts and computes brightness.
 
   buildBackdrop();
+
+  snapBtn = createButton("Snap");
+  snapBtn.addClass("snap-btn");
+  snapBtn.mousePressed(takeSnapshot);
+  snapBtn.position(width - 82, 18);
 }
 
 function buildBackdrop() {
@@ -308,6 +315,7 @@ function draw() {
   const imgY = frameY + inset;
   const imgW = frameW - inset * 2;
   const imgH = frameH - inset * 2;
+  lastVideoRect = { x: imgX, y: imgY, w: imgW, h: imgH };
   drawMappedVideo(imgX, imgY, imgW, imgH);
 
   noFill();
@@ -510,6 +518,23 @@ function mapByBrightnessBlend(r, g, b) {
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
   buildBackdrop();
+  if (snapBtn) {
+    snapBtn.position(width - 82, 18);
+  }
+}
+
+function takeSnapshot() {
+  // Saves the current filtered frame (whole view) as PNG.
+  // Mobile browsers require a direct user gesture, so this is triggered by the button click.
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  if (lastVideoRect) {
+    const { x, y, w, h } = lastVideoRect;
+    const snap = get(x, y, w, h); // grab the remapped feed region only
+    snap.save("profile-filter-feed-" + stamp + ".png");
+    return;
+  }
+
+  saveCanvas("profile-filter-" + stamp, "png");
 }
 
 function handlePaletteHit(px, py) {
