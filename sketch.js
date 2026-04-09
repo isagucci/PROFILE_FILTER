@@ -38,7 +38,7 @@ const PROFILE_DEFS = {
   },
   arid: {
     label: "Arid",
-    code: "C",
+    code: "B",
     notes: "Dusty warmth,\nmuted intensity,\nand sun-washed contrast.",
   },
   polar: {
