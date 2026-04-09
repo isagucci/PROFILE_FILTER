@@ -43,7 +43,7 @@ const PROFILE_DEFS = {
   },
   polar: {
     label: "Polar",
-    code: "D",
+    code: "E",
     notes: "Cool clarity,\nhigh value range,\nand crisp contrast edges.",
   },
 };
@@ -68,6 +68,35 @@ const THEME = {
   frameInset: [0, 0, 0, 40],
   hairline: [255, 255, 255, 71],
 };
+
+const BACKDROP_THEMES = {
+  default: {
+    meshTop: [78, 130, 104],
+    meshBottom: [225, 207, 168],
+    glowA: [255, 187, 120, 38],
+    glowB: [161, 186, 214, 42],
+    vignette: [42, 40, 36, 120],
+  },
+  polar: {
+    meshTop: [58, 123, 178],
+    meshBottom: [225, 207, 168],
+    glowA: [204, 193, 172, 46],
+    glowB: [58, 123, 178, 44],
+    vignette: [28, 44, 60, 118],
+  },
+  arid: {
+    meshTop: [190, 140, 133],
+    meshBottom: [236, 208, 200],
+    glowA: [202, 244, 244, 40],
+    glowB: [190, 140, 133, 46],
+    vignette: [58, 46, 44, 116],
+  },
+};
+
+function getBackdropTheme() {
+  const key = String(state.climateKey || "").trim().toLowerCase();
+  return BACKDROP_THEMES[key] || BACKDROP_THEMES.default;
+}
 
 function parseHexColorToken(token) {
   if (!token) return null;
@@ -183,10 +212,16 @@ function setup() {
   snapBtn = createButton("Snap");
   snapBtn.addClass("snap-btn");
   snapBtn.mousePressed(takeSnapshot);
+  snapBtn.touchStarted((e) => {
+    if (e?.preventDefault) e.preventDefault();
+    takeSnapshot();
+    return false;
+  });
   snapBtn.position(width - 82, 18);
 }
 
 function buildBackdrop() {
+  const bg = getBackdropTheme();
   backdrop = createGraphics(width, height);
   backdrop.pixelDensity(pixelDensity());
   const g = backdrop;
@@ -194,8 +229,8 @@ function buildBackdrop() {
   for (let y = 0; y < height; y++) {
     let t = height > 1 ? y / (height - 1) : 0;
     let c = lerpColor(
-      color(THEME.meshTop[0], THEME.meshTop[1], THEME.meshTop[2]),
-      color(THEME.meshBottom[0], THEME.meshBottom[1], THEME.meshBottom[2]),
+      color(bg.meshTop[0], bg.meshTop[1], bg.meshTop[2]),
+      color(bg.meshBottom[0], bg.meshBottom[1], bg.meshBottom[2]),
       t
     );
     g.stroke(c);
@@ -203,12 +238,12 @@ function buildBackdrop() {
   }
   g.blendMode(ADD);
   g.noStroke();
-  g.fill(255, 187, 120, 38);
+  g.fill(bg.glowA[0], bg.glowA[1], bg.glowA[2], bg.glowA[3]);
   g.circle(width * 0.92, height * 0.06, width * 1.05);
-  g.fill(161, 186, 214, 42);
+  g.fill(bg.glowB[0], bg.glowB[1], bg.glowB[2], bg.glowB[3]);
   g.circle(width * 0.02, height * 1.02, height * 0.95);
   g.blendMode(BLEND);
-  g.fill(THEME.vignette[0], THEME.vignette[1], THEME.vignette[2], 120);
+  g.fill(bg.vignette[0], bg.vignette[1], bg.vignette[2], bg.vignette[3]);
   g.rect(0, 0, width, height);
 }
 
@@ -523,18 +558,37 @@ function windowResized() {
   }
 }
 
-function takeSnapshot() {
-  // Saves the current filtered frame (whole view) as PNG.
-  // Mobile browsers require a direct user gesture, so this is triggered by the button click.
+async function takeSnapshot() {
+  // Mobile-safe export flow: share sheet when available, fallback to opening image in new tab.
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  if (lastVideoRect) {
-    const { x, y, w, h } = lastVideoRect;
-    const snap = get(x, y, w, h); // grab the remapped feed region only
-    snap.save("profile-filter-feed-" + stamp + ".png");
-    return;
-  }
+  const target = lastVideoRect
+    ? get(lastVideoRect.x, lastVideoRect.y, lastVideoRect.w, lastVideoRect.h)
+    : get();
 
-  saveCanvas("profile-filter-" + stamp, "png");
+  try {
+    const dataUrl = target.canvas.toDataURL("image/png");
+    const blob = await (await fetch(dataUrl)).blob();
+    const file = new File([blob], `profile-filter-feed-${stamp}.png`, { type: "image/png" });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        title: "Profile Filter Snapshot",
+      });
+      return;
+    }
+
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = file.name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } catch (_err) {
+    // iOS Safari fallback: open image and let user long-press to save.
+    const dataUrl = target.canvas.toDataURL("image/png");
+    window.open(dataUrl, "_blank");
+  }
 }
 
 function handlePaletteHit(px, py) {
