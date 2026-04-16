@@ -347,22 +347,26 @@ function draw() {
   fill(THEME.ink[0], THEME.ink[1], THEME.ink[2]);
   textSize(isWide ? 12 : 11.5 * mobileTextScale);
   textAlign(LEFT, TOP);
-  const sidePad = 16;
-  let sy = paletteY + sidePad;
+  const sidePad = isWide ? 12 : 8;
+  let sy = paletteY + (isWide ? 10 : 6);
   text("PALETTE", paletteX + sidePad, sy);
 
+  const innerSideW = paletteW - sidePad * 2;
   textFont(bodyFont);
   textStyle(NORMAL);
+  textSize(isWide ? 11 : 10 * mobileTextScale);
+  fill(THEME.inkFaint[0], THEME.inkFaint[1], THEME.inkFaint[2], THEME.inkFaint[3]);
+  text("Tap to enable/disable colors.", paletteX + sidePad, sy + 14, innerSideW, 18);
 
   const swatchGap = isWide ? 8 : 7;
   const swatchR = 8;
-  let swatchY = sy + 26;
-  const innerSideW = paletteW - sidePad * 2;
+  let swatchY = sy + 30;
   paletteHitboxes = [];
   const cols = isWide ? 6 : 3;
   const rows = ceil(paletteAll.length / cols);
   const swW = (innerSideW - swatchGap * (cols - 1)) / cols;
-  const swH = min(isWide ? 30 : 24, max(16, (paletteH - 54 - swatchGap * (rows - 1)) / rows));
+  const swHBase = min(isWide ? 32 : 26, max(18, (paletteH - 42 - swatchGap * (rows - 1)) / rows));
+  const swSize = min(swW, swHBase);
   for (let i = 0; i < paletteAll.length; i++) {
     let col = i % cols;
     let row = floor(i / cols);
@@ -377,23 +381,13 @@ function draw() {
       strokeWeight(1);
       fill(c[0], c[1], c[2], 70);
     }
-    const x = paletteX + sidePad + col * (swW + swatchGap);
-    const y = swatchY + row * (swH + swatchGap);
-    rect(x, y, swW, swH, swatchR);
-    paletteHitboxes.push({ x, y, w: swW, h: swH, idx: i });
+    const cellX = paletteX + sidePad + col * (swW + swatchGap);
+    const y = swatchY + row * (swSize + swatchGap);
+    const x = cellX + (swW - swSize) / 2;
+    rect(x, y, swSize, swSize, swSize / 2);
+    paletteHitboxes.push({ x, y, w: swSize, h: swSize, idx: i });
   }
-  swatchY += rows * (swH + swatchGap) + 4;
-  textFont(bodyFont);
-  textStyle(NORMAL);
-  textSize(isWide ? 11 : 10 * mobileTextScale);
-  fill(THEME.inkFaint[0], THEME.inkFaint[1], THEME.inkFaint[2], THEME.inkFaint[3]);
-  text(
-    "Tap to enable/disable colors.",
-    paletteX + sidePad,
-    swatchY,
-    innerSideW,
-    max(20, paletteY + paletteH - swatchY - 8)
-  );
+  swatchY += rows * (swSize + swatchGap) + 4;
 
   // Shutter control overlays the filter near bottom-center.
   if (snapDock) {
