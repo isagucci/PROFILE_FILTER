@@ -14,7 +14,7 @@ let backdrop;
 let videoBuffer;
 let fontsReady = false;
 let snapBtn;
-let lastVideoRect = null; // {x,y,w,h} in canvas coords for the remapped feed
+let lastVideoRect = null; 
 
 function getProcessScale(isWide) {
   // Mobile looks pixelated at the old scale; bump quality there.
@@ -50,8 +50,8 @@ const PROFILE_DEFS = {
 
 const state = {
   climateKey: "tropical",
-  palette: null, // array of [r,g,b]
-  userField: null, // array of [r,g,b]
+  palette: null, 
+  userField: null, 
 };
 
 const THEME = {
@@ -205,12 +205,12 @@ function setup() {
   videoBuffer = createGraphics(1, 1);
   videoBuffer.pixelDensity(1);
 
-  // `recomputeActivePalette()` already sorts and computes brightness.
-
   buildBackdrop();
 
-  snapBtn = createButton("Snap");
+  snapBtn = createButton("");
   snapBtn.addClass("snap-btn");
+  snapBtn.attribute("aria-label", "Snap photo");
+  snapBtn.html('<img src="button.png" alt="" />');
   snapBtn.mousePressed(takeSnapshot);
   snapBtn.touchStarted((e) => {
     if (e?.preventDefault) e.preventDefault();
