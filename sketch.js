@@ -585,7 +585,6 @@ async function takeSnapshot() {
     a.click();
     a.remove();
   } catch (_err) {
-    // iOS Safari fallback: open image and let user long-press to save.
     const dataUrl = target.canvas.toDataURL("image/png");
     window.open(dataUrl, "_blank");
   }

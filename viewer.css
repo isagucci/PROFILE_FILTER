@@ -68,11 +68,14 @@ video {
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.35);
   color: #fff;
-  padding: 10px 14px;
-  border-radius: 50%;
-  font-family: "neue-haas-grotesk-text-pro", system-ui, -apple-system, BlinkMacSystemFont,
-    "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
-  font-size: 13px;
+  width: 52px;
+  height: 52px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 10px;
+  border-radius: 100%;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
