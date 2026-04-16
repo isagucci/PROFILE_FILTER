@@ -217,7 +217,7 @@ function setup() {
     takeSnapshot();
     return false;
   });
-  snapBtn.position(width - 82, 18);
+  snapBtn.position(width / 2 - 26, height - 86);
 }
 
 function buildBackdrop() {
@@ -306,40 +306,20 @@ function draw() {
   const subY = titleY + titleBlockH;
   yCursor = subY + (isWide ? 36 : 10);
 
-  const bottomReserve = isWide ? 40 : 22;
-  const availH = height - yCursor - bottomReserve;
+  const bottomReserve = isWide ? 84 : 98;
 
-  let frameX, frameY, frameW, frameH;
-  let sideX, sideY, sideW, sideH;
+  // Palette panel now lives above the camera, directly under the title.
+  const paletteX = pad;
+  const paletteY = yCursor;
+  const paletteW = contentW;
+  const paletteH = isWide ? 106 : 92;
 
-  if (isWide) {
-    sideW = min(220, max(168, floor(contentW * 0.26)));
-    frameW = contentW - sideW - gap;
-    frameX = pad;
-    frameY = yCursor;
-    frameH = min(availH, frameW * 0.75);
-    sideX = frameX + frameW + gap;
-    sideY = frameY;
-    sideH = frameH;
-  } else {
-    frameY = yCursor;
-    // Mobile: make camera taller, palette smaller and anchored at bottom (no scroll).
-    frameW = contentW;
-    frameX = pad;
-
-    sideX = pad;
-    sideW = contentW;
-    sideH = 130;
-    sideY = height - bottomReserve - sideH;
-
-    frameH = max(210, sideY - gap - frameY);
-    // If space is tight, compress the palette bar a bit to give camera more room.
-    if (frameH < 230) {
-      sideH = 110;
-      sideY = height - bottomReserve - sideH;
-      frameH = max(200, sideY - gap - frameY);
-    }
-  }
+  const frameX = pad;
+  const frameY = paletteY + paletteH + gap;
+  const frameW = contentW;
+  const availH = height - frameY - bottomReserve;
+  let frameH = isWide ? min(availH, frameW * 0.72) : max(170, availH);
+  frameH = max(150, frameH);
 
   drawGlassPanel(frameX, frameY, frameW, frameH, panelR);
   fill(THEME.frameInset[0], THEME.frameInset[1], THEME.frameInset[2], THEME.frameInset[3]);
@@ -358,91 +338,66 @@ function draw() {
   strokeWeight(1);
   rect(imgX, imgY, imgW, imgH, innerR);
 
-  drawGlassPanel(sideX, sideY, sideW, sideH, panelR);
+  drawGlassPanel(paletteX, paletteY, paletteW, paletteH, panelR);
 
   textFont(labelFont);
   textStyle(NORMAL);
   fill(THEME.ink[0], THEME.ink[1], THEME.ink[2]);
-  textSize(12);
+  textSize(isWide ? 12 : 11.5 * mobileTextScale);
   textAlign(LEFT, TOP);
   const sidePad = 16;
-  let sy = sideY + sidePad;
-  text("PALETTE", sideX + sidePad, sy);
+  let sy = paletteY + sidePad;
+  text("PALETTE", paletteX + sidePad, sy);
 
   textFont(bodyFont);
   textStyle(NORMAL);
 
-  const swatchGap = isWide ? 10 : 8;
+  const swatchGap = isWide ? 8 : 7;
   const swatchR = 8;
   let swatchY = sy + 26;
-  const innerSideW = sideW - sidePad * 2;
+  const innerSideW = paletteW - sidePad * 2;
   paletteHitboxes = [];
-
-  if (isWide) {
-    const sh = 26;
-    for (let i = 0; i < paletteAll.length; i++) {
-      const c = paletteAll[i];
-      const selected = selectedPaletteIdx.has(i);
-      if (selected) {
-        stroke(255, 255, 255, 80);
-        strokeWeight(1);
-        fill(c[0], c[1], c[2], 255);
-      } else {
-        stroke(255, 255, 255, 30);
-        strokeWeight(1);
-        fill(c[0], c[1], c[2], 80);
-      }
-      let sh = 26;
-      const x = sideX + sidePad;
-      const y = swatchY + i * (sh + swatchGap);
-      rect(x, y, innerSideW, sh, swatchR);
-      paletteHitboxes.push({ x, y, w: innerSideW, h: sh, idx: i });
+  const cols = isWide ? 6 : 3;
+  const rows = ceil(paletteAll.length / cols);
+  const swW = (innerSideW - swatchGap * (cols - 1)) / cols;
+  const swH = min(isWide ? 30 : 24, max(16, (paletteH - 54 - swatchGap * (rows - 1)) / rows));
+  for (let i = 0; i < paletteAll.length; i++) {
+    let col = i % cols;
+    let row = floor(i / cols);
+    const c = paletteAll[i];
+    const selected = selectedPaletteIdx.has(i);
+    if (selected) {
+      stroke(255, 255, 255, 84);
+      strokeWeight(1);
+      fill(c[0], c[1], c[2], 255);
+    } else {
+      stroke(255, 255, 255, 26);
+      strokeWeight(1);
+      fill(c[0], c[1], c[2], 70);
     }
-    swatchY += paletteAll.length * (sh + swatchGap) + 8;
-  } else {
-    const cols = 3;
-    const rows = ceil(paletteAll.length / cols);
-    const swW = (innerSideW - swatchGap * (cols - 1)) / cols;
-    // Keep palette controls smaller on mobile.
-    const swH = min(28, max(20, (sideH - 80) / rows));
-    for (let i = 0; i < paletteAll.length; i++) {
-      let col = i % cols;
-      let row = floor(i / cols);
-      const c = paletteAll[i];
-      const selected = selectedPaletteIdx.has(i);
-      if (selected) {
-        stroke(255, 255, 255, 80);
-        strokeWeight(1);
-        fill(c[0], c[1], c[2], 255);
-      } else {
-        stroke(255, 255, 255, 30);
-        strokeWeight(1);
-        fill(c[0], c[1], c[2], 80);
-      }
-      const x = sideX + sidePad + col * (swW + swatchGap);
-      const y = swatchY + row * (swH + swatchGap);
-      rect(
-        x,
-        y,
-        swW,
-        swH,
-        swatchR
-      );
-      paletteHitboxes.push({ x, y, w: swW, h: swH, idx: i });
-    }
-    swatchY += rows * (swH + swatchGap) + 12;
+    const x = paletteX + sidePad + col * (swW + swatchGap);
+    const y = swatchY + row * (swH + swatchGap);
+    rect(x, y, swW, swH, swatchR);
+    paletteHitboxes.push({ x, y, w: swW, h: swH, idx: i });
   }
+  swatchY += rows * (swH + swatchGap) + 4;
   textFont(bodyFont);
   textStyle(NORMAL);
-  textSize(isWide ? 12 : 12 * mobileTextScale);
+  textSize(isWide ? 11 : 10 * mobileTextScale);
   fill(THEME.inkFaint[0], THEME.inkFaint[1], THEME.inkFaint[2], THEME.inkFaint[3]);
   text(
-    "Tap to enable/disable colors.\nSelected colors drive the filter.",
-    sideX + sidePad,
+    "Tap to enable/disable colors.",
+    paletteX + sidePad,
     swatchY,
     innerSideW,
-    max(42, sideY + sideH - swatchY - sidePad)
+    max(20, paletteY + paletteH - swatchY - 8)
   );
+
+  // Bottom-center shutter placement like iPhone camera controls.
+  if (snapBtn) {
+    const btnSize = 52;
+    snapBtn.position(width / 2 - btnSize / 2, height - btnSize - 22);
+  }
 
   textFont(bodyFont);
   fill(THEME.inkCaption[0], THEME.inkCaption[1], THEME.inkCaption[2], THEME.inkCaption[3]);
@@ -554,7 +509,7 @@ function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
   buildBackdrop();
   if (snapBtn) {
-    snapBtn.position(width - 82, 18);
+    snapBtn.position(width / 2 - 26, height - 86);
   }
 }
 
