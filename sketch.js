@@ -308,15 +308,15 @@ function draw() {
   fill(THEME.inkFaint[0], THEME.inkFaint[1], THEME.inkFaint[2], THEME.inkFaint[3]);
   const titleBlockH = titleSize * (isWide ? 1.35 : 1.65);
   const subY = titleY + titleBlockH;
-  yCursor = subY + (isWide ? 36 : 10);
+  yCursor = subY + (isWide ? 30 : 6);
 
-  const bottomReserve = isWide ? 84 : 98;
+  const bottomReserve = isWide ? 64 : 36;
 
   // Palette panel now lives above the camera, directly under the title.
   const paletteX = pad;
   const paletteY = yCursor;
   const paletteW = contentW;
-  const paletteH = isWide ? 106 : 92;
+  const paletteH = isWide ? 106 : 86;
 
   const frameX = pad;
   const frameY = paletteY + paletteH + gap;
@@ -349,25 +349,25 @@ function draw() {
   textAlign(LEFT, TOP);
   const sidePad = isWide ? 12 : 8;
   let sy = paletteY + (isWide ? 10 : 6);
-  text("PALETTE", paletteX + sidePad, sy);
+  text("Palette", paletteX + sidePad, sy);
 
   const innerSideW = paletteW - sidePad * 2;
   textFont(bodyFont);
   textStyle(NORMAL);
   textSize(isWide ? 11 : 10 * mobileTextScale);
   fill(THEME.inkFaint[0], THEME.inkFaint[1], THEME.inkFaint[2], THEME.inkFaint[3]);
-  text("Tap to enable/disable colors.", paletteX + sidePad, sy + 14, innerSideW, 18);
+  text("Tap to enable/disable colors.", paletteX + sidePad, sy + 18, innerSideW, 18);
 
   const swatchGap = isWide ? 8 : 7;
   const swatchR = 8;
-  let swatchY = sy + 30;
+  let swatchY = sy + 38;
   paletteHitboxes = [];
   const cols = isWide ? 6 : 3;
-  const rows = ceil(paletteAll.length / cols);
+  const rows = isWide ? ceil(paletteAll.length / cols) : 2;
+  const visibleCount = isWide ? paletteAll.length : min(paletteAll.length, 6);
   const swW = (innerSideW - swatchGap * (cols - 1)) / cols;
-  const swHBase = min(isWide ? 32 : 26, max(18, (paletteH - 42 - swatchGap * (rows - 1)) / rows));
-  const swSize = min(swW, swHBase);
-  for (let i = 0; i < paletteAll.length; i++) {
+  const swHBase = min(isWide ? 32 : 22, max(16, (paletteH - 52 - swatchGap * (rows - 1)) / rows));
+  for (let i = 0; i < visibleCount; i++) {
     let col = i % cols;
     let row = floor(i / cols);
     const c = paletteAll[i];
@@ -382,19 +382,19 @@ function draw() {
       fill(c[0], c[1], c[2], 70);
     }
     const cellX = paletteX + sidePad + col * (swW + swatchGap);
-    const y = swatchY + row * (swSize + swatchGap);
-    const x = cellX + (swW - swSize) / 2;
-    rect(x, y, swSize, swSize, swSize / 2);
-    paletteHitboxes.push({ x, y, w: swSize, h: swSize, idx: i });
+    const y = swatchY + row * (swHBase + swatchGap);
+    const x = cellX;
+    rect(x, y, swW, swHBase, 4);
+    paletteHitboxes.push({ x, y, w: swW, h: swHBase, idx: i });
   }
-  swatchY += rows * (swSize + swatchGap) + 4;
+  swatchY += rows * (swHBase + swatchGap) + 4;
 
   // Shutter control overlays the filter near bottom-center.
   if (snapDock) {
     const dockW = imgW;
     const dockH = isWide ? 62 : 56;
     const dockX = imgX;
-    const dockY = imgY + imgH - dockH - 8;
+    const dockY = imgY + imgH - dockH;
     snapDock.style("width", `${dockW}px`);
     snapDock.style("height", `${dockH}px`);
     snapDock.position(dockX, dockY);
@@ -417,8 +417,21 @@ function drawMappedVideo(imgX, imgY, imgW, imgH) {
   // Cap processing size for performance on big screens.
   const isWide = width >= 768;
   const maxProcessDim = isWide ? 900 : 1300;
-  const bufferW = max(1, min(maxProcessDim, floor(imgW * processScale)));
-  const bufferH = max(1, min(maxProcessDim, floor(imgH * processScale)));
+  const captureAspect =
+    capture && capture.width > 0 && capture.height > 0
+      ? capture.width / capture.height
+      : imgW / max(1, imgH);
+  const targetPixels = max(1, floor(imgW * processScale)) * max(1, floor(imgH * processScale));
+  let bufferW = max(1, floor(sqrt(targetPixels * captureAspect)));
+  let bufferH = max(1, floor(bufferW / captureAspect));
+  if (bufferW > maxProcessDim) {
+    bufferW = maxProcessDim;
+    bufferH = max(1, floor(bufferW / captureAspect));
+  }
+  if (bufferH > maxProcessDim) {
+    bufferH = maxProcessDim;
+    bufferW = max(1, floor(bufferH * captureAspect));
+  }
 
   if (videoBuffer.width !== bufferW || videoBuffer.height !== bufferH) {
     videoBuffer.resizeCanvas(bufferW, bufferH);
