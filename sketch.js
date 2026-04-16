@@ -14,6 +14,7 @@ let backdrop;
 let videoBuffer;
 let fontsReady = false;
 let snapBtn;
+let snapDock;
 let lastVideoRect = null; 
 
 function getProcessScale(isWide) {
@@ -208,6 +209,9 @@ function setup() {
   buildBackdrop();
 
   snapBtn = createButton("");
+  snapDock = createDiv("");
+  snapDock.addClass("snap-dock");
+  snapBtn.parent(snapDock);
   snapBtn.addClass("snap-btn");
   snapBtn.attribute("aria-label", "Snap photo");
   snapBtn.html('<img src="button.png" alt="" />');
@@ -217,7 +221,7 @@ function setup() {
     takeSnapshot();
     return false;
   });
-  snapBtn.position(width / 2 - 26, height - 86);
+  if (snapDock) snapDock.position(width / 2 - 38, height - 96);
 }
 
 function buildBackdrop() {
@@ -393,10 +397,13 @@ function draw() {
     max(20, paletteY + paletteH - swatchY - 8)
   );
 
-  // Bottom-center shutter placement like iPhone camera controls.
-  if (snapBtn) {
-    const btnSize = 52;
-    snapBtn.position(width / 2 - btnSize / 2, height - btnSize - 22);
+  // Shutter control overlays the filter near bottom-center.
+  if (snapDock) {
+    const dockW = 76;
+    const dockH = 62;
+    const dockX = imgX + imgW / 2 - dockW / 2;
+    const dockY = imgY + imgH - dockH - 10;
+    snapDock.position(dockX, dockY);
   }
 
   textFont(bodyFont);
@@ -508,8 +515,8 @@ function mapByBrightnessBlend(r, g, b) {
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
   buildBackdrop();
-  if (snapBtn) {
-    snapBtn.position(width / 2 - 26, height - 86);
+  if (snapDock) {
+    snapDock.position(width / 2 - 38, height - 96);
   }
 }
 
