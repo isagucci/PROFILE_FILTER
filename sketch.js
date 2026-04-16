@@ -262,6 +262,7 @@ function draw() {
   processScale = getProcessScale(isWide);
   const pad = isWide ? min(max(16, width * 0.045), 28) : 14;
   const gap = isWide ? 22 : 12;
+  const paletteToFeedGap = isWide ? gap : 18;
   const panelR = 16;
   const innerR = 12;
   const mobileTextScale = isWide ? 1 : constrain(map(height, 620, 860, 0.86, 1), 0.84, 1);
@@ -310,7 +311,7 @@ function draw() {
   const subY = titleY + titleBlockH;
   yCursor = subY + (isWide ? 30 : 4);
 
-  const bottomReserve = isWide ? 64 : 36;
+  const bottomReserve = isWide ? 64 : 18;
 
   // Palette panel now lives above the camera, directly under the title.
   const paletteX = pad;
@@ -319,7 +320,7 @@ function draw() {
   const paletteH = isWide ? 106 : 84;
 
   const frameX = pad;
-  const frameY = paletteY + paletteH + gap;
+  const frameY = paletteY + paletteH + paletteToFeedGap;
   const frameW = contentW;
   const availH = height - frameY - bottomReserve;
   let frameH = isWide ? min(availH, frameW * 0.72) : max(170, availH);
@@ -329,11 +330,12 @@ function draw() {
   fill(THEME.frameInset[0], THEME.frameInset[1], THEME.frameInset[2], THEME.frameInset[3]);
   rect(frameX + 1, frameY + 1, frameW - 2, frameH - 2, panelR - 1);
 
-  const inset = isWide ? 14 : 10;
-  const imgX = frameX + inset;
-  const imgY = frameY + inset;
-  const imgW = frameW - inset * 2;
-  const imgH = frameH - inset * 2;
+  const insetX = isWide ? 14 : 0;
+  const insetY = isWide ? 14 : 8;
+  const imgX = frameX + insetX;
+  const imgY = frameY + insetY;
+  const imgW = frameW - insetX * 2;
+  const imgH = frameH - insetY * 2;
   lastVideoRect = { x: imgX, y: imgY, w: imgW, h: imgH };
   drawMappedVideo(imgX, imgY, imgW, imgH);
 
