@@ -342,8 +342,6 @@ function draw() {
   strokeWeight(1);
   rect(imgX, imgY, imgW, imgH, innerR);
 
-  drawGlassPanel(paletteX, paletteY, paletteW, paletteH, panelR);
-
   textFont(labelFont);
   textStyle(NORMAL);
   fill(THEME.ink[0], THEME.ink[1], THEME.ink[2]);
@@ -399,10 +397,12 @@ function draw() {
 
   // Shutter control overlays the filter near bottom-center.
   if (snapDock) {
-    const dockW = 76;
-    const dockH = 62;
-    const dockX = imgX + imgW / 2 - dockW / 2;
-    const dockY = imgY + imgH - dockH - 10;
+    const dockW = imgW;
+    const dockH = isWide ? 62 : 56;
+    const dockX = imgX;
+    const dockY = imgY + imgH - dockH - 8;
+    snapDock.style("width", `${dockW}px`);
+    snapDock.style("height", `${dockH}px`);
     snapDock.position(dockX, dockY);
   }
 
@@ -456,16 +456,16 @@ function drawMappedVideo(imgX, imgY, imgW, imgH) {
 
   videoBuffer.updatePixels();
 
-  // Draw without warping: preserve aspect and crop to fill ("cover").
+  // Draw without warping: preserve aspect and fit fully inside viewport ("contain").
   const srcAspect = videoBuffer.width / videoBuffer.height;
   const dstAspect = imgW / imgH;
   let drawW, drawH;
   if (dstAspect > srcAspect) {
-    drawW = imgW;
-    drawH = imgW / srcAspect;
-  } else {
     drawH = imgH;
     drawW = imgH * srcAspect;
+  } else {
+    drawW = imgW;
+    drawH = imgW / srcAspect;
   }
   const dx = imgX + (imgW - drawW) / 2;
   const dy = imgY + (imgH - drawH) / 2;
@@ -521,7 +521,6 @@ function windowResized() {
 }
 
 async function takeSnapshot() {
-  // Mobile-safe export flow: share sheet when available, fallback to opening image in new tab.
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const target = lastVideoRect
     ? get(lastVideoRect.x, lastVideoRect.y, lastVideoRect.w, lastVideoRect.h)
