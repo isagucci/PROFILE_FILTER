@@ -308,7 +308,7 @@ function draw() {
   fill(THEME.inkFaint[0], THEME.inkFaint[1], THEME.inkFaint[2], THEME.inkFaint[3]);
   const titleBlockH = titleSize * (isWide ? 1.35 : 1.65);
   const subY = titleY + titleBlockH;
-  yCursor = subY + (isWide ? 30 : 6);
+  yCursor = subY + (isWide ? 30 : 4);
 
   const bottomReserve = isWide ? 64 : 36;
 
@@ -316,7 +316,7 @@ function draw() {
   const paletteX = pad;
   const paletteY = yCursor;
   const paletteW = contentW;
-  const paletteH = isWide ? 106 : 86;
+  const paletteH = isWide ? 106 : 84;
 
   const frameX = pad;
   const frameY = paletteY + paletteH + gap;
@@ -345,28 +345,28 @@ function draw() {
   textFont(labelFont);
   textStyle(NORMAL);
   fill(THEME.ink[0], THEME.ink[1], THEME.ink[2]);
-  textSize(isWide ? 12 : 11.5 * mobileTextScale);
+  textSize(isWide ? 12 : 12.5 * mobileTextScale);
   textAlign(LEFT, TOP);
-  const sidePad = isWide ? 12 : 8;
+  const sidePad = isWide ? 12 : 6;
   let sy = paletteY + (isWide ? 10 : 6);
   text("Palette", paletteX + sidePad, sy);
 
   const innerSideW = paletteW - sidePad * 2;
   textFont(bodyFont);
   textStyle(NORMAL);
-  textSize(isWide ? 11 : 10 * mobileTextScale);
+  textSize(isWide ? 11 : 11 * mobileTextScale);
   fill(THEME.inkFaint[0], THEME.inkFaint[1], THEME.inkFaint[2], THEME.inkFaint[3]);
-  text("Tap to enable/disable colors.", paletteX + sidePad, sy + 18, innerSideW, 18);
+  text("Tap to enable/disable colors.", paletteX + sidePad, sy + 20, innerSideW, 20);
 
   const swatchGap = isWide ? 8 : 7;
   const swatchR = 8;
-  let swatchY = sy + 38;
+  let swatchY = sy + 42;
   paletteHitboxes = [];
   const cols = isWide ? 6 : 3;
   const rows = isWide ? ceil(paletteAll.length / cols) : 2;
   const visibleCount = isWide ? paletteAll.length : min(paletteAll.length, 6);
   const swW = (innerSideW - swatchGap * (cols - 1)) / cols;
-  const swHBase = min(isWide ? 32 : 22, max(16, (paletteH - 52 - swatchGap * (rows - 1)) / rows));
+  const swHBase = min(isWide ? 32 : 24, max(18, (paletteH - 50 - swatchGap * (rows - 1)) / rows));
   for (let i = 0; i < visibleCount; i++) {
     let col = i % cols;
     let row = floor(i / cols);
