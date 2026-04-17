@@ -465,8 +465,28 @@ function drawMappedVideo(imgX, imgY, imgW, imgH) {
 
   videoBuffer.updatePixels();
 
-  // Fill the frame exactly (can slightly distort aspect).
-  image(videoBuffer, imgX, imgY, imgW, imgH);
+  // Preserve aspect and fit fully inside viewport ("contain").
+  const srcAspect = videoBuffer.width / videoBuffer.height;
+  const dstAspect = imgW / imgH;
+  let drawW, drawH;
+  if (dstAspect > srcAspect) {
+    drawH = imgH;
+    drawW = imgH * srcAspect;
+  } else {
+    drawW = imgW;
+    drawH = imgW / srcAspect;
+  }
+  const dx = imgX + (imgW - drawW) / 2;
+  const dy = imgY + (imgH - drawH) / 2;
+
+  push();
+  drawingContext.save();
+  drawingContext.beginPath();
+  drawingContext.rect(imgX, imgY, imgW, imgH);
+  drawingContext.clip();
+  image(videoBuffer, dx, dy, drawW, drawH);
+  drawingContext.restore();
+  pop();
 }
 
 function getBrightness(r, g, b) {
